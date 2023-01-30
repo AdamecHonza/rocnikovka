@@ -15,7 +15,7 @@ exports.getConcerts = async (req, res) => {
   const concertsData = await db((pb) => {
     return pb.collection("concerts").getList();
   });
-  for (const concert of concertsData.items) {
+  for (const concert of concertsData?.items) {
     const addressData = await db((pb) => {
       return pb.collection("addresses").getOne(concert.address_id);
     });

@@ -19,16 +19,6 @@ app.use("/api/concert", concertRouter);
 app.use("/api/ticket", ticketRouter);
 
 
-app.get("/", async (req, res) => {
-    try {
-        const authData = await pb.admins.authWithPassword(process.env.DB_ADMIN_EMAIL, process.env.DB_ADMIN_PASS);
-        const resultList = await pb.collection('addresses').getList(1, 50);
-        res.json(resultList.items   )
-    } catch (err) {
-        console.error(err)
-        res.status(err.status).send(err.data)
-    }
-})
 
 
 app.listen(PORT, () =>
