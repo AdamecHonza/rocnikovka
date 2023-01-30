@@ -1,7 +1,6 @@
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
-const PocketBase = require("pocketbase/cjs");
 
 require("dotenv").config();
 
@@ -15,10 +14,9 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-const pb = new PocketBase("http://127.0.0.1:8090");
 
-app.use("api/contert", concertRouter);
-app.use("api/ticket", ticketRouter);
+app.use("/api/concert", concertRouter);
+app.use("/api/ticket", ticketRouter);
 
 
 app.get("/", async (req, res) => {

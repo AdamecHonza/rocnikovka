@@ -1,153 +1,81 @@
-exports.getConcerts = async (req, res) => {}
-exports.createConcert = async (req, res) => {}
-exports.deleteConcerts = async (req, res) => {}
-exports.getConcertById = async (req, res) => {}
-exports.getConcertSearch = async (req, res) => {}
-exports.updateConcert = async (req, res) => {}
-exports.deleteConcert = async (req, res) => {}
+const { db } = require("../helpers/dbConnector");
 
-/*
-exports.getBooks = async (req, res) => {
-  try {
-    const result = await Book.find().select("name year _id");
-    if (result && result.length !== 0) {
-      return res.status(200).json({
-        count: result.length,
-        books: result.map((book) => {
-          return {
-            ...book.toObject(),
-            request: {
-              type: "GET",
-              url: `http://localhost:3000/book/${book._id}`,
-            },
-          };
-        }),
-      });
-    }
-    res.status(404).json({ msg: "Books not found" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: error,
+// const { id } = req.params;
+// const concertData = await db((pb) => {
+//   return pb.collection("concerts").getOne(id);
+// });
+// const adressData = await db((pb) => {
+//   return pb.collection("addresses").getOne(concertData.address_id);
+// });
+// delete concertData.address_id
+// concertData.address = adressData
+// res.status(200).json(concertData);
+
+exports.getConcerts = async (req, res) => {
+  const concertsData = await db((pb) => {
+    return pb.collection("concerts").getList();
+  });
+  for (const concert of concertsData.items) {
+    const addressData = await db((pb) => {
+      return pb.collection("addresses").getOne(concert.address_id);
     });
+    delete concert.address_id;
+    concert.address = addressData;
   }
+  res.status(200).json(concertsData);
 };
 
-exports.getBook = async (req, res) => {
-  try {
-    const result = await Book.findById(req.params.id).select("-__v");
-    if (result) {
-      return res.status(200).json({
-        ...result.toObject(),
-        request: {
-          type: "GET",
-          url: "http://127.0.0.1:3000/book",
-        },
-      });
-    }
-    res.status(404).json({ msg: "Book not found" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: error,
-    });
-  }
+exports.createConcert = async (req, res) => {
+  const data = req.body;
+  const result = await db((pb) => {
+    return pb.collection("concerts").create(data);
+  });
+  res.status(200).json(result);
 };
 
-exports.postBook = async (req, res) => {
-  try {
-    const book = new Book({
-      name: req.body.name,
-      year: req.body.year,
+exports.deleteConcerts = async (req, res) => {
+  const { id } = req.body;
+  const allConcertsData = await db((pb) => {
+    return pb.collection("concerts").getList();
+  });
+  const dbResponse = await db((pb) => {
+    const results = [];
+    allConcertsData.items.forEach((concert) => {
+      results.push(pb.collection("concerts").delete(concert.id));
     });
-    const result = await book.save();
-    if (result) {
-      return res.status(201).json({
-        message: "Your book was created",
-        createdBook: {
-          ...result.toObject(),
-          payload: {
-            type: "GET",
-            url: `http://127.0.0.1:3000/book/${result._id}`,
-          },
-        },
-      });
-    }
-    res.status(500).json({ msg: "Book was not created" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error,
-    });
-  }
+    return results;
+  });
+  res.status(200).json(dbResponse);
 };
 
-exports.putBook = async (req, res) => {
-  try {
-    const update = {
-      name: req.body.name,
-      year: req.body.year,
-    };
-    const result = await Book.findByIdAndUpdate(req.params.id, update);
-    if (result) {
-      return res.status(200).json({
-        msg: `Book ${req.params.id} was updated`,
-        request: {
-          type: "GET",
-          url: `http://127.0.0.1:3000/book/${req.params.id}`,
-        },
-      });
-    }
-    res.status(500).json({ msg: "Book could not be updated" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: error,
-    });
-  }
+exports.getConcertById = async (req, res) => {
+  const { id } = req.params;
+  const concertData = await db((pb) => {
+    return pb.collection("concerts").getOne(id);
+  });
+  const adressData = await db((pb) => {
+    return pb.collection("addresses").getOne(concertData.address_id);
+  });
+  delete concertData.address_id;
+  concertData.address = adressData;
+  res.status(200).json(concertData);
 };
 
-exports.patchBook = async (req, res) => {
-  try {
-    const update = {};
-    for (const ops of req.body) {
-      update[ops.propName] = ops.value;
-    }
-    const result = await Book.findByIdAndUpdate(req.params.id, update);
-    if (result) {
-      return res.status(200).json({
-        msg: `Book ${req.params.id} was updated`,
-        request: {
-          type: "GET",
-          url: `http://127.0.0.1:3000/book/${req.params.id}`,
-        },
-      });
-    }
-    res.status(500).json({ msg: "Book could not be updated" });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: error,
-    });
-  }
+exports.getConcertSearch = async (req, res) => {};
+
+exports.updateConcert = async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  const result = await db((pb) => {
+    return pb.collection("concerts").update(id, data);
+  });
+  res.status(200).json(result);
 };
 
-exports.deleteBook = async (req, res) => {
-  try {
-    const result = await Book.findByIdAndDelete(req.params.id);
-    if (result) {
-      return res.status(200).json({
-        msg: `Book ${result.name}, id: ${result._id} was deleted`,
-      });
-    }
-    res.status(404).json({
-      msg: "Book not found",
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error: error,
-    });
-  }
+exports.deleteConcert = async (req, res) => {
+  const { id } = req.params;
+  const result = await db((pb) => {
+    return pb.collection("concerts").delete(id);
+  });
+  res.status(200).json(result);
 };
-*/
