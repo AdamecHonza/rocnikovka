@@ -1,29 +1,25 @@
 const { db } = require("../helpers/dbConnector");
-const { randomTicketSecret, randomTicketNumber } = require("../helpers/random");
-
-// const { id } = req.params;
-// const concertData = await db((pb) => {
-//   return pb.collection("concerts").getOne(id);
-// });
-// const adressData = await db((pb) => {
-//   return pb.collection("addresses").getOne(concertData.address_id);
-// });
-// delete concertData.address_id
-// concertData.address = adressData
-// res.status(200).json(concertData);
+const { randomTicketSecret } = require("../helpers/random");
 
 exports.getConcerts = async (req, res) => {
-  const concertsData = await db((pb) => {
-    return pb.collection("concerts").getList();
-  });
-  for (const concert of concertsData?.items) {
+  const concertsGetResponse = await db((pb) => {
+    return pb.collection("concerts").getList(1,50);
+  }); 
+  console.log(concertsGetResponse)
+
+  if (concertsGetResponse?.status)
+    return res
+      .status(concertsGetResponse.status)
+      .json(concertsGetResponse.data);
+
+  for (const concert of (concertsGetResponse?.items || [])) {
     const addressData = await db((pb) => {
       return pb.collection("addresses").getOne(concert.address_id);
     });
     delete concert.address_id;
     concert.address = addressData;
   }
-  res.status(200).json(concertsData);
+  res.status(200).json(concertsGetResponse);
 };
 
 exports.createConcert = async (req, res) => {
@@ -37,41 +33,18 @@ exports.createConcert = async (req, res) => {
       .status(concertCreateResponse.status)
       .json(concertCreateResponse.data);
 
-  const ticketNumbers = new Set();
-  while (true) {
-    if (ticketNumbers.size === data.capacity) break;
-
-    const ticketNumber = randomTicketNumber();
-    const lenght = ticketNumbers.size;
-    ticketNumbers.add(ticketNumber);
-    if (lenght === ticketNumbers.size) {
-      continue;
-    }
-
-    const ticketCreateResponse = await db((pb) => {
-      return pb.collection("tickets").create({
-        concert_id: concertCreateResponse.id,
-        ticket_code: `${concertCreateResponse.ticket_secret} ${ticketNumber}`
-      });
-    });
-  }
-
   res.status(200).json({
-    concert: {
-      name: concertCreateResponse.name,
-      interpret: concertCreateResponse.interpret,
-      description: concertCreateResponse.description,
-      datetime: concertCreateResponse.datetime,
-      ticket_secret: concertCreateResponse.ticket_secret,
-      picutre: concertCreateResponse.picture,
-      capacity: concertCreateResponse.capacity
-    },
-    tickets: [...ticketNumbers],
+    name: concertCreateResponse.name,
+    interpret: concertCreateResponse.interpret,
+    description: concertCreateResponse.description,
+    datetime: concertCreateResponse.datetime,
+    ticket_secret: concertCreateResponse.ticket_secret,
+    picutre: concertCreateResponse.picture,
+    capacity: concertCreateResponse.capacity,
   });
 };
 
 exports.deleteConcerts = async (req, res) => {
-  const { id } = req.body;
   const allConcertsData = await db((pb) => {
     return pb.collection("concerts").getList();
   });
@@ -87,15 +60,15 @@ exports.deleteConcerts = async (req, res) => {
 
 exports.getConcertById = async (req, res) => {
   const { id } = req.params;
-  const concertData = await db((pb) => {
+  const concertGetReponse = await db((pb) => {
     return pb.collection("concerts").getOne(id);
   });
-  const adressData = await db((pb) => {
-    return pb.collection("addresses").getOne(concertData.address_id);
+  const addressGetResponse = await db((pb) => {
+    return pb.collection("addresses").getOne(concertGetReponse.address_id);
   });
-  delete concertData.address_id;
-  concertData.address = adressData;
-  res.status(200).json(concertData);
+  delete concertGetReponse.address_id;
+  concertGetReponse.address = addressGetResponse;
+  res.status(200).json(concertGetReponse);
 };
 
 exports.getConcertSearch = async (req, res) => {};
@@ -117,4 +90,41 @@ exports.deleteConcert = async (req, res) => {
   res.status(200).json(result);
 };
 
-exports.getAvailableTickets = async (req, res) => {};
+exports.getAvailableTickets = async (req, res) => {
+  const { id } = req.params;
+  const concertGetReponse = await db((pb) => {
+    return pb.collection("concerts").getOne(id);
+  });
+  const ticketsGetReponse = await db((pb) => {
+    return pb.collection("tickets").getList(1,1000,{filter: `concert_id = '${id}'`})
+  })
+
+  res.status(200).json({
+    available: concertGetReponse.capacity - (ticketsGetReponse.totalItems | 0)
+  });
+
+}
+
+exports.getBoughtTickets = async (req, res) => {
+  const { id } = req.params;
+  const concertGetReponse = await db((pb) => {
+    return pb.collection("concerts").getOne(id);
+  });
+  const ticketsGetReponse = await db((pb) => {
+    return pb.collection("tickets").getList(1,1000,{filter: `concert_id = '${id}'`})
+  })
+  const tickets = ticketsGetReponse.items.map((ticket) => ({
+    first_name: ticket.first_name,
+    last_name: ticket.last_name,
+    email: ticket.email,
+    ticket_code: `${concertGetReponse.ticket_secret} ${ticket.ticket_number}`
+  }))
+
+  res.status(200).json({
+    concert: concertGetReponse,
+    tickets: {
+      length: ticketsGetReponse.totalItems,
+      items: tickets
+    }
+  });
+};

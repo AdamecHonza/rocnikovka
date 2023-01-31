@@ -8,6 +8,7 @@ const HomePage = () => {
   const [concerts, setConcerts] = useState([]);
 
   useEffect(() => {
+    console.log("UPDATE")
     axios
       .get(`${BASE_URL}/api/concert`)
       .then((res) => setConcerts(res.data.items));
@@ -18,7 +19,7 @@ const HomePage = () => {
       <Columns>
         <Columns.Column size={7}>
           <>
-            {concerts.map((concert, i) => (
+            {concerts?.map((concert, i) => (
               <Concert {...concert} key={i} />
             ))}
           </>

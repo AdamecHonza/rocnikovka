@@ -1,5 +1,7 @@
-import React from "react";
+import axios from "axios";
+import React, {useEffect, useState} from "react";
 import { Box, Content, Heading, Level } from "react-bulma-components";
+import { BASE_URL } from "../App";
 
 const Concert = ({
   name,
@@ -9,11 +11,21 @@ const Concert = ({
   address,
   datetime,
   picture,
+  id
 }) => {
+  const [data, setData] = useState(0);
+
+  useEffect(() => {
+    axios
+      .get(`${BASE_URL}/api/concert/availabletickets/${id}`)
+      .then((res) => setData(res.data));
+  }, []);
+
   return (
     <Box>
       <Heading size={5} renderAs={"h5"}>
         <Level>
+          <span>{id}</span>
           <span>{name}</span>
           <span>{interpret}</span>
         </Level>
@@ -26,7 +38,7 @@ const Concert = ({
       </Heading>
       <Level>
         <Content>{description}</Content>
-        <span>{capacity}</span>
+        <span>{data?.available} / {capacity}</span>
       </Level>
       <address>
         <p>{address.street}</p>
